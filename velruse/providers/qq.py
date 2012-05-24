@@ -1,6 +1,12 @@
 """QQ Authentication Views"""
+from pyramid.compat import PY3
+
+if PY3:
+    from urllib.parse import parse_qs
+else:
+    from urlparse import parse_qs
+
 from json import loads
-from urlparse import parse_qs
 
 import requests
 
@@ -97,19 +103,21 @@ class QQProvider(object):
             redirect_uri=request.route_url(self.callback_route),
             code=code)
         r = requests.get(access_url)
+        content = r.content.decode('UTF-8')
         if r.status_code != 200:
             raise ThirdPartyFailure("Status %s: %s" % (
-                r.status_code, r.content))
-        access_token = parse_qs(r.content)['access_token'][0]
+                r.status_code, content))
+        access_token = parse_qs(content)['access_token'][0]
 
         # Retrieve profile data
         graph_url = flat_url('https://graph.qq.com/oauth2.0/me',
                              access_token=access_token)
         r = requests.get(graph_url)
+        content = r.content.decode('UTF-8')
         if r.status_code != 200:
             raise ThirdPartyFailure("Status %s: %s" % (
-                r.status_code, r.content))
-        data = loads(r.content[10:-3])
+                r.status_code, content))
+        data = loads(content[10:-3])
         openid = data.get('openid', '')
 
         user_info_url = flat_url('https://graph.qq.com/user/get_user_info',
@@ -117,10 +125,11 @@ class QQProvider(object):
                 oauth_consumer_key=self.consumer_key,
                 openid=openid)
         r = requests.get(user_info_url)
+        content = r.content.decode('UTF-8')
         if r.status_code != 200:
             raise ThirdPartyFailure("Status %s: %s" % (
-                r.status_code, r.content))
-        data = loads(r.content)
+                r.status_code, content))
+        data = loads(content)
 
         profile = {
             'accounts': [{'domain':'qq.com', 'userid':openid}],

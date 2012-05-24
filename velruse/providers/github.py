@@ -3,8 +3,14 @@
 http://develop.github.com/p/oauth.html
 https://github.com/account/applications
 """
+from pyramid.compat import PY3
+
+if PY3:
+    from urllib.parse import parse_qs
+else:
+    from urlparse import parse_qs
+
 from json import loads
-from urlparse import parse_qs
 
 import requests
 
@@ -100,19 +106,21 @@ class GithubProvider(object):
             redirect_uri=request.route_url(self.callback_route),
             code=code)
         r = requests.get(access_url)
+        content = r.content.decode('UTF-8')
         if r.status_code != 200:
             raise ThirdPartyFailure("Status %s: %s" % (
-                r.status_code, r.content))
-        access_token = parse_qs(r.content)['access_token'][0]
+                r.status_code, content))
+        access_token = parse_qs(content)['access_token'][0]
 
         # Retrieve profile data
         graph_url = flat_url('https://github.com/api/v2/json/user/show',
                              access_token=access_token)
         r = requests.get(graph_url)
+        content = r.content.decode('UTF-8')
         if r.status_code != 200:
             raise ThirdPartyFailure("Status %s: %s" % (
-                r.status_code, r.content))
-        data = loads(r.content)['user']
+                r.status_code, content))
+        data = loads(content)['user']
 
         profile = {}
         profile['accounts'] = [{

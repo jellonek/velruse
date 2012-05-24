@@ -7,9 +7,14 @@ Google Apps using OAuth2.
 """
 from __future__ import absolute_import
 
+from pyramid.compat import PY3
+
 import logging
 from json import loads
-from urlparse import parse_qs
+if PY3:
+    from urllib.parse import parse_qs
+else:
+    from urlparse import parse_qs
 
 import oauth2 as oauth
 from openid.extensions import ax

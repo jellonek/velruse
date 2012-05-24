@@ -1,6 +1,12 @@
 """Douban Authentication Views"""
+from pyramid.compat import PY3
+
+if PY3:
+    from urllib.parse import parse_qs
+else:
+    from urlparse import parse_qs
+
 import json
-from urlparse import parse_qs
 
 import oauth2 as oauth
 
@@ -83,13 +89,14 @@ class DoubanProvider(object):
             http_url=REQUEST_URL)
         oauth_request.sign_request(SIGMETHOD, consumer, None)
         r = requests.get(REQUEST_URL, headers=oauth_request.to_header())
+        content = r.content.decode('UTF-8')
 
         if r.status_code != 200:
             raise ThirdPartyFailure("Status %s: %s" % (
-                r.status_code, r.content))
-        request_token = oauth.Token.from_string(r.content)
+                r.status_code, content))
+        request_token = oauth.Token.from_string(content)
 
-        request.session['token'] = r.content
+        request.session['token'] = content
 
         # Send the user to douban now for authorization
         req_url = 'http://www.douban.com/service/auth/authorize'

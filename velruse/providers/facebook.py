@@ -1,8 +1,14 @@
 """Facebook Authentication Views"""
+from pyramid.compat import PY3
+
 import datetime
 import uuid
 from json import loads
-from urlparse import parse_qs
+
+if PY3:
+    from urllib.parse import parse_qs
+else:  # pragma: no cover
+    from urlparse import parse_qs
 
 import requests
 
@@ -106,19 +112,21 @@ class FacebookProvider(object):
             redirect_uri=request.route_url(self.callback_route),
             code=code)
         r = requests.get(access_url)
+        content = r.content.decode('UTF-8')
         if r.status_code != 200:
             raise ThirdPartyFailure("Status %s: %s" % (
-                r.status_code, r.content))
-        access_token = parse_qs(r.content)['access_token'][0]
+                r.status_code, content))
+        access_token = parse_qs(content)['access_token'][0]
 
         # Retrieve profile data
         graph_url = flat_url('https://graph.facebook.com/me',
                              access_token=access_token)
         r = requests.get(graph_url)
+        content = r.content.decode('UTF-8')
         if r.status_code != 200:
             raise ThirdPartyFailure("Status %s: %s" % (
-                r.status_code, r.content))
-        fb_profile = loads(r.content)
+                r.status_code, content))
+        fb_profile = loads(content)
         profile = extract_fb_data(fb_profile)
 
         cred = {'oauthAccessToken': access_token}

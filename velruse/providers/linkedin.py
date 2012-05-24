@@ -1,6 +1,12 @@
 """LinkedIn Authentication Views"""
+from pyramid.compat import PY3
+
+if PY3:
+    from urllib.parse import parse_qs
+else:
+    from urlparse import parse_qs
+
 from json import loads
-from urlparse import parse_qs
 
 import oauth2 as oauth
 import requests
@@ -84,11 +90,12 @@ class LinkedInProvider(object):
             http_url=REQUEST_URL, parameters=params)
         oauth_request.sign_request(sigmethod, consumer, None)
         r = requests.get(REQUEST_URL, headers=oauth_request.to_header())
+        content = r.content.decode('UTF-8')
 
         if r.status_code != 200:
             raise ThirdPartyFailure("Status %s: %s" % (
-                r.status_code, r.content))
-        request_token = oauth.Token.from_string(r.content)
+                r.status_code, content))
+        request_token = oauth.Token.from_string(content)
 
         request.session['token'] = r.content
 

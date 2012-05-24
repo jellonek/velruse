@@ -1,5 +1,10 @@
 """Twitter Authentication Views"""
-from urlparse import parse_qs
+from pyramid.compat import PY3
+
+if PY3:
+    from urllib.parse import parse_qs
+else:
+    from urlparse import parse_qs
 
 import oauth2 as oauth
 import requests
@@ -83,10 +88,11 @@ class TwitterProvider(object):
             http_url=REQUEST_URL, parameters=params)
         oauth_request.sign_request(sigmethod, consumer, None)
         r = requests.get(REQUEST_URL, headers=oauth_request.to_header())
+        content = r.content.decode('UTF-8')
 
         if r.status_code != 200:
             raise ThirdPartyFailure("Status %s: %s" % (
-                r.status_code, r.content))
+                r.status_code, content))
         request_token = oauth.Token.from_string(r.content)
 
         request.session['token'] = r.content
@@ -114,7 +120,8 @@ class TwitterProvider(object):
         client = oauth.Client(consumer, request_token)
         resp, content = client.request(ACCESS_URL, "POST")
         if resp['status'] != '200':
-            raise ThirdPartyFailure("Status %s: %s" % (resp['status'], content))
+            raise ThirdPartyFailure("Status %s: %s" % (resp['status'],
+                                                       content))
         access_token = dict(parse_qs(content))
 
         # Setup the normalized contact info
@@ -125,7 +132,9 @@ class TwitterProvider(object):
         }]
         profile['displayName'] = access_token['screen_name'][0]
 
-        cred = {'oauthAccessToken': access_token['oauth_token'][0],
-                'oauthAccessTokenSecret': access_token['oauth_token_secret'][0]}
+        cred = {
+            'oauthAccessToken': access_token['oauth_token'][0],
+            'oauthAccessTokenSecret': access_token['oauth_token_secret'][0]
+        }
         return TwitterAuthenticationComplete(profile=profile,
                                              credentials=cred)

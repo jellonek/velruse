@@ -1,7 +1,12 @@
 from __future__ import absolute_import
 
 import logging
-from urlparse import parse_qs
+from pyramid.compat import PY3
+
+if PY3:
+    from urllib.parse import parse_qs
+else:
+    from urlparse import parse_qs
 
 import oauth2 as oauth
 from openid.extensions import ax
