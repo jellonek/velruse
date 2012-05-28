@@ -86,16 +86,16 @@ class TwitterProvider(object):
         # We go through some shennanigans here to specify a callback url
         oauth_request = oauth.Request.from_consumer_and_token(consumer,
             http_url=REQUEST_URL, parameters=params)
-        oauth_request.sign_request(sigmethod, consumer, None)
+        oauth_request.sign_request(sigmethod, consumer, None, False)
         r = requests.get(REQUEST_URL, headers=oauth_request.to_header())
         content = r.content.decode('UTF-8')
 
         if r.status_code != 200:
             raise ThirdPartyFailure("Status %s: %s" % (
                 r.status_code, content))
-        request_token = oauth.Token.from_string(r.content)
+        request_token = oauth.Token.from_string(content)
 
-        request.session['token'] = r.content
+        request.session['token'] = content
 
         # Send the user to twitter now for authorization
         req_url = 'https://api.twitter.com/oauth/authenticate'
@@ -119,6 +119,7 @@ class TwitterProvider(object):
 
         client = oauth.Client(consumer, request_token)
         resp, content = client.request(ACCESS_URL, "POST")
+        content = content.decode('UTF-8')
         if resp['status'] != '200':
             raise ThirdPartyFailure("Status %s: %s" % (resp['status'],
                                                        content))
